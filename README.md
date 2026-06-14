@@ -26,7 +26,7 @@ The engine dispatches five parallel agents, each with a unique mental model:
 
 ### Installation
 ```bash
-pi install pi-audit-master
+pi install npm:pi-audit-master
 ```
 
 ### Running an Audit
