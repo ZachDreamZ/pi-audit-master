@@ -1,14 +1,14 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.default = default_1;
+exports.default = piAuditMaster;
 const audit_manager_1 = require("./audit-manager");
 /**
  * pi-audit-master
  * Professional multi-agent auditing and repair engine.
  */
-function default_1(pi) {
+async function piAuditMaster(pi) {
     const auditManager = new audit_manager_1.AuditManager(pi);
-    // Register the 'audit' tool
+    // Register the 'audit' tool for AI function-calling
     pi.registerTool({
         name: "audit",
         description: "Perform a comprehensive multi-agent audit of a directory. Options: depth (surface/deep), format (chat/file/hybrid), fix (on/off).",
@@ -37,8 +37,6 @@ function default_1(pi) {
         },
         handler: async (ctx, args) => {
             const targetPath = args.path || ".";
-            // If depth/format/fix are missing, we will use ask_user_question inside the manager
-            // to make the experience interactive if the tool is called generically.
             try {
                 const result = await auditManager.runAudit({
                     path: targetPath,
@@ -55,5 +53,30 @@ function default_1(pi) {
             }
         },
     });
+    // Register as a user-facing slash command for TUI visibility
+    // registerCommand is a real Pi runtime method (not in type declarations yet)
+    const piAny = pi;
+    if (typeof piAny.registerCommand === "function") {
+        piAny.registerCommand("audit", {
+            description: "Perform a comprehensive multi-agent codebase audit",
+            handler: async (ctx) => {
+                ctx.ui.notify("Starting deep audit of the current project...", "info");
+                try {
+                    const result = await auditManager.runAudit({
+                        path: process.cwd(),
+                        depth: "deep",
+                        format: "hybrid",
+                        fix: false,
+                        ctx: ctx,
+                    });
+                    return JSON.stringify(result, null, 2);
+                }
+                catch (error) {
+                    ctx.ui.notify(`Audit failed: ${error.message}`, "error");
+                    return `Error: ${error.message}`;
+                }
+            },
+        });
+    }
     console.log("[pi-audit-master] Extension loaded. Use /audit to start a comprehensive audit.");
 }

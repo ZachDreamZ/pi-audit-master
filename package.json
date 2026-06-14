@@ -1,13 +1,13 @@
 {
   "name": "pi-audit-master",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "description": "Professional multi-agent codebase auditing and automated repair engine",
   "keywords": ["pi-package"],
   "pi": {
-    "extensions": ["./dist/extensions"]
+    "extensions": ["./extensions"]
   },
   "files": [
-    "dist",
+    "extensions",
     "README.md",
     "CHANGELOG.md",
     "LICENSE"
@@ -15,7 +15,7 @@
   "scripts": {
     "build": "tsc",
     "test": "jest",
-    "prepare": "npm run build"
+    "prepublishOnly": "npm run build"
   },
   "peerDependencies": {
     "pi-coding-agent": "*"

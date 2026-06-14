@@ -5,10 +5,10 @@ import { AuditManager } from "./audit-manager";
  * pi-audit-master
  * Professional multi-agent auditing and repair engine.
  */
-export default function (pi: ExtensionAPI) {
+export default async function piAuditMaster(pi: ExtensionAPI) {
 	const auditManager = new AuditManager(pi);
 
-	// Register the 'audit' tool
+	// Register the 'audit' tool for AI function-calling
 	pi.registerTool({
 		name: "audit",
 		description:
@@ -43,9 +43,6 @@ export default function (pi: ExtensionAPI) {
 		handler: async (ctx: ExtensionCommandContext, args: any) => {
 			const targetPath = args.path || ".";
 
-			// If depth/format/fix are missing, we will use ask_user_question inside the manager
-			// to make the experience interactive if the tool is called generically.
-
 			try {
 				const result = await auditManager.runAudit({
 					path: targetPath,
@@ -62,6 +59,31 @@ export default function (pi: ExtensionAPI) {
 			}
 		},
 	});
+
+	// Register as a user-facing slash command for TUI visibility
+	// registerCommand is a real Pi runtime method (not in type declarations yet)
+	const piAny = pi as any;
+	if (typeof piAny.registerCommand === "function") {
+		piAny.registerCommand("audit", {
+			description: "Perform a comprehensive multi-agent codebase audit",
+			handler: async (ctx: ExtensionCommandContext) => {
+				ctx.ui.notify("Starting deep audit of the current project...", "info");
+				try {
+					const result = await auditManager.runAudit({
+						path: process.cwd(),
+						depth: "deep",
+						format: "hybrid",
+						fix: false,
+						ctx: ctx,
+					});
+					return JSON.stringify(result, null, 2);
+				} catch (error: any) {
+					ctx.ui.notify(`Audit failed: ${error.message}`, "error");
+					return `Error: ${error.message}`;
+				}
+			},
+		});
+	}
 
 	console.log(
 		"[pi-audit-master] Extension loaded. Use /audit to start a comprehensive audit.",
