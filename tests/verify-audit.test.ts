@@ -54,7 +54,7 @@ describe("AuditManager Verification", () => {
 		spy.mockRestore();
 	});
 
-	it("should resolve critical issues when fix is enabled", async () => {
+	it("should attempt fix and report honest status (FixFleet is a stub)", async () => {
 		const spy = jest
 			.spyOn(manager, "dispatchAuditAgents")
 			.mockResolvedValue([
@@ -69,8 +69,12 @@ describe("AuditManager Verification", () => {
 			ctx: mockCtx as any,
 		});
 
+		// FixFleet is a stub. It honestly returns FAILED because it cannot
+		// actually apply patches. The user must apply the fix manually.
 		expect(result.fixes).toBeDefined();
-		expect(result.fixes[0].status).toBe("RESOLVED");
+		expect(result.fixes.length).toBe(1);
+		expect(result.fixes[0].status).toBe("FAILED");
+		expect(result.fixes[0].details).toMatch(/Worker|confirm|did not/);
 
 		spy.mockRestore();
 	});

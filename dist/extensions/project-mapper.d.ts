@@ -3,7 +3,7 @@ export declare class ProjectMapper {
     constructor(rootPath: string);
     /**
      * Maps the project and returns a list of files that contain core logic.
-     * @param depth 'surface' for limited scan, 'deep' for full core scan.
+     * @param depth 'surface' for a limited scan, 'deep' for a full core scan.
      */
     mapCoreLogic(depth: "surface" | "deep"): Promise<string[]>;
     private mapSurface;

@@ -1,6 +1,8 @@
 import type { ExtensionAPI } from "pi-coding-agent";
 export interface FixResult {
     issueId: string;
+    severity: string;
+    file: string;
     status: "RESOLVED" | "FAILED" | "SKIPPED";
     details: string;
 }
