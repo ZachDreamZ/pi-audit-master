@@ -1,6 +1,6 @@
 {
   "name": "pi-audit-master",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Professional multi-agent codebase auditing and automated repair engine",
   "main": "extensions/index.ts",
   "types": "dist/extensions/index.d.ts",
