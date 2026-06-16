@@ -2,11 +2,16 @@
 
 **Professional Multi-Agent Codebase Auditing & Automated Repair Engine**
 
+[![Pi Package](https://img.shields.io/badge/Pi-Package-blue)](https://pi.dev/packages)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![npm version](https://img.shields.io/npm/v/pi-audit-master.svg)](https://www.npmjs.com/package/pi-audit-master)
+
 `pi-audit-master` is a high-precision quality assurance tool for Pi extensions. Instead of generic code reviews, it deploys a coordinated fleet of specialized AI agents to identify critical bugs, logical gaps, and performance bottlenecks using industry-standard analysis techniques.
 
 ## 🚀 Core Features
 
 ### 🧬 The "Specialized Five" Audit Personas
+
 The engine dispatches five parallel agents, each with a unique mental model:
 
 | Persona | Focus | Technique |
@@ -18,24 +23,31 @@ The engine dispatches five parallel agents, each with a unique mental model:
 | **Quality Guardian** | Maintainability | **Smell Detection**: Finds technical debt and redundant logic. |
 
 ### ⚙️ Advanced Capabilities
+
 - **Intelligent Mapping**: The `ProjectMapper` identifies "Core Logic" files to maximize token efficiency and avoid auditing boilerplate.
 - **Hybrid Reporting**: Generates a professional `audit-report.md` for the repository and a concise summary for the chat.
 - **Automated Fix-Fleet**: Optionally deploys a second wave of "Fixer" agents to resolve identified issues and verifies them via the project's test suite.
+- **Passive Mode**: Automatically audits files after modifications (v0.4.0+)
+- **AI-Powered Analysis**: Uses Pi's complete() function for intelligent code review
+- **Static Analysis Fallback**: Works offline with pattern-based detection
 
 ## 🛠️ Usage
 
 ### Installation
+
 ```bash
 pi install npm:pi-audit-master
 ```
 
 ### Running an Audit
+
 Invoke the tool via natural language or the direct command:
 
 **Natural Language:**
 *"Audit this project and fix any critical bugs."*
 
 **Direct Command:**
+
 ```bash
 /audit { 
   "path": ".", 
@@ -46,12 +58,15 @@ Invoke the tool via natural language or the direct command:
 ```
 
 ### Configuration Options
+
 - **`depth`**: `surface` (entry points only) or `deep` (full core logic scan).
 - **`format`**: `chat` (summary only), `file` (markdown report), or `hybrid` (both).
 - **`fix`**: `true` (enable automated Fix-Fleet) or `false` (diagnosis only).
 
 ## 📈 Pipeline Flow
+
 `Command` $\to$ `Config` $\to$ `Project Mapping` $\to$ `Parallel Audit` $\to$ `Chief Synthesis` $\to$ `(Optional) Fix-Fleet` $\to$ `Verification`.
 
 ## 📄 License
+
 MIT

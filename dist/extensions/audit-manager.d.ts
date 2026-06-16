@@ -21,10 +21,20 @@ export declare class AuditManager {
     private resolveConfig;
     /**
      * Dispatches audit tasks to specialized agents.
-     * NOTE: This is a stub. In a full implementation, this would use
-     * the subagent tool or a similar mechanism to run AGENT_PROMPTS in parallel.
-     * Currently returns placeholder reports so the rest of the pipeline works.
+     * Uses Pi's complete() function to run each agent persona against the files.
      */
     dispatchAuditAgents(files: string[]): Promise<string[]>;
+    /**
+     * Read files for audit, limiting content to prevent token explosion.
+     */
+    private readFilesForAudit;
+    /**
+     * Run a single audit agent persona against file contents.
+     */
+    private runAuditAgent;
+    /**
+     * Run static analysis as fallback when AI completion is unavailable.
+     */
+    private runStaticAnalysis;
     private handleOutput;
 }
