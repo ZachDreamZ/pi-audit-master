@@ -1,6 +1,7 @@
 // Shared utility functions for pi-audit-master.
 
 import { randomUUID } from "node:crypto";
+import { logError } from "./logger";
 
 /**
  * Generate a collision-resistant ID for a finding or issue.
@@ -39,7 +40,7 @@ export function safeWriteFile(filePath: string, content: string): boolean {
 		fs.writeFileSync(filePath, content, "utf8");
 		return true;
 	} catch (err) {
-		console.error(`[pi-audit-master] Failed to write file ${filePath}: ${(err as Error).message}`);
+		logError(`Failed to write file ${filePath}: ${(err as Error).message}`);
 		return false;
 	}
 }
@@ -47,7 +48,11 @@ export function safeWriteFile(filePath: string, content: string): boolean {
 /**
  * Create a deduplication key from a finding's properties.
  */
-export function findingDedupKey(file: string, line: number, description: string): string {
+export function findingDedupKey(
+	file: string,
+	line: number,
+	description: string,
+): string {
 	// Normalize: trim, collapse whitespace, lowercase
 	const normFile = file.trim().toLowerCase();
 	const normDesc = description.trim().replace(/\s+/g, " ").toLowerCase();

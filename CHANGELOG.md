@@ -1,5 +1,39 @@
 # Changelog
 
+## [0.5.0] - 2026-06-17
+
+### Comprehensive Audit & Quality Release
+
+#### New Features
+
+- **Unified Logger**: All console output now routed through shared `logger.ts` utility with configurable log levels (SILENT, ERROR, WARN, INFO, DEBUG)
+- **Timeout Mechanism**: Configurable `timeoutMs` option (default 5 minutes) with graceful cancellation via `Promise.race`
+- **Progress Reporting**: Optional `onProgress(stage, progress, total)` callback for UI integration — reports mapping, audit, synthesis, output, and fix stages
+- **Input Sanitization**: New `sanitizePath()` function in `project-mapper.ts` prevents path traversal attacks with base directory validation
+- **Conservative Magic Number Detection**: `FixFleet.isMagicNumber()` now excludes common legitimate numbers (years, HTTP status codes, ports, time constants, buffer sizes, versions)
+
+#### Bug Fixes
+
+- **Log Debug Import Removed**: Removed unused `logDebug` import from `audit-manager.ts` (was causing LSP warning)
+- **RunAudit Closing Brace**: Fixed missing closing brace in `runAudit` method after adding timeout/progress logic
+- **Logger BOM Issue**: Removed UTF-8 BOM from `logger.ts` that was causing TypeScript compilation error
+- **FixFleet Console.warn**: Replaced remaining `console.warn` in fix verification with `logWarn`
+
+#### Improvements
+
+- **TypeScript Configuration**: Added `isolatedModules: true` to `tsconfig.json` to eliminate TS151002 warnings
+- **Passive Mode Logging**: Updated `index.ts` passive audit hooks to use `logInfo`/`logWarn` instead of raw console
+- **Audit Manager Logging**: All dispatch, synthesis, and output handling now uses structured logging
+- **FixFleet Logging**: All fix operations use `logInfo`/`logWarn`/`logError`
+- **Synthesizer Logging**: Report parsing errors use `logWarn`/`logError`
+- **Project Mapper Logging**: Directory read errors use `logWarn`
+- **Util Logging**: File write errors use `logError`
+
+#### Test Coverage
+
+- All 39 existing tests pass
+- No regressions introduced
+
 ## [0.4.0] - 2026-06-16
 
 ### Major Enhancement Release

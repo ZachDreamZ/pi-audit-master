@@ -16,9 +16,9 @@ The engine dispatches five parallel agents, each with a unique mental model:
 
 | Persona | Focus | Technique |
 | :--- | :--- | :--- |
-| **Type Sentinel** | Null/Undefined Safety | **Taint Analysis**: Tracks data from source $\to$ flow $\to$ sink. |
+| **Type Sentinel** | Null/Undefined Safety | **Taint Analysis**: Tracks data from source → flow → sink. |
 | **Logic Architect** | Algorithmic Correctness | **State-Machine Analysis**: Finds race conditions and flow gaps. |
-| **Performance Oracle** | Efficiency & Scaling | **Complexity Analysis**: Identifies $O(n^2)$ loops and leaks. |
+| **Performance Oracle** | Efficiency & Scaling | **Complexity Analysis**: Identifies O(n²) loops and leaks. |
 | **Ecosystem Integrator** | Pi API Compatibility | **Contract Analysis**: Verifies Event and Factory patterns. |
 | **Quality Guardian** | Maintainability | **Smell Detection**: Finds technical debt and redundant logic. |
 
@@ -28,8 +28,11 @@ The engine dispatches five parallel agents, each with a unique mental model:
 - **Hybrid Reporting**: Generates a professional `audit-report.md` for the repository and a concise summary for the chat.
 - **Automated Fix-Fleet**: Optionally deploys a second wave of "Fixer" agents to resolve identified issues and verifies them via the project's test suite.
 - **Passive Mode**: Automatically audits files after modifications (v0.4.0+)
-- **AI-Powered Analysis**: Uses Pi's complete() function for intelligent code review
+- **AI-Powered Analysis**: Uses Pi's `complete()` function for intelligent code review
 - **Static Analysis Fallback**: Works offline with pattern-based detection
+- **Timeout & Progress**: Configurable timeouts and progress callbacks for long audits (v0.5.0+)
+- **Path Traversal Protection**: Input sanitization to prevent path traversal attacks (v0.5.0+)
+- **Conservative Magic Number Detection**: Avoids false positives on legitimate constants (v0.5.0+)
 
 ## 🛠️ Usage
 
@@ -59,13 +62,26 @@ Invoke the tool via natural language or the direct command:
 
 ### Configuration Options
 
-- **`depth`**: `surface` (entry points only) or `deep` (full core logic scan).
-- **`format`**: `chat` (summary only), `file` (markdown report), or `hybrid` (both).
-- **`fix`**: `true` (enable automated Fix-Fleet) or `false` (diagnosis only).
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `depth` | `"surface" \| "deep"` | `"deep"` | Audit depth. Surface: entry points only. Deep: full core logic scan. |
+| `format` | `"chat" \| "file" \| "hybrid"` | `"hybrid"` | Report format. Chat: summary only. File: markdown report. Hybrid: both. |
+| `fix` | `boolean` | `false` | Enable automated Fix-Fleet to resolve issues. |
+| `timeoutMs` | `number` | `300000` | Optional timeout in milliseconds for the entire audit operation. |
+| `onProgress` | `(stage: string, progress: number, total: number) => void` | `undefined` | Optional progress callback for UI updates. |
 
 ## 📈 Pipeline Flow
 
-`Command` $\to$ `Config` $\to$ `Project Mapping` $\to$ `Parallel Audit` $\to$ `Chief Synthesis` $\to$ `(Optional) Fix-Fleet` $\to$ `Verification`.
+`Command` → `Config` → `Project Mapping` → `Parallel Audit` → `Chief Synthesis` → `(Optional) Fix-Fleet` → `Verification`.
+
+## 📊 Version 0.5.0 Highlights
+
+- **All console output unified through logger utility** — consistent formatting, configurable log levels
+- **Timeout mechanism** — prevents hanging audits on large codebases
+- **Progress reporting** — callbacks for UI integration
+- **Input sanitization** — `sanitizePath()` prevents path traversal
+- **Conservative magic number fixes** — avoids false positives on years, ports, HTTP codes, etc.
+- **TypeScript `isolatedModules: true`** — eliminated TS151002 warnings
 
 ## 📄 License
 

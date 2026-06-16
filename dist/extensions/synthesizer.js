@@ -10,6 +10,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.AuditSynthesizer = void 0;
 const util_1 = require("./util");
+const logger_1 = require("./logger");
 class AuditSynthesizer {
     rootPath;
     constructor(rootPath) {
@@ -20,14 +21,14 @@ class AuditSynthesizer {
         for (let i = 0; i < reports.length; i++) {
             const report = reports[i];
             if (!report || typeof report !== "string") {
-                console.warn(`[pi-audit-master] Skipping invalid report at index ${i}`);
+                (0, logger_1.logWarn)(`Skipping invalid report at index ${i}`);
                 continue;
             }
             try {
                 allFindings.push(...this.parseReport(report));
             }
             catch (err) {
-                console.error(`[pi-audit-master] Failed to parse report ${i}: ${err.message}`);
+                (0, logger_1.logError)(`Failed to parse report ${i}: ${err.message}`);
             }
         }
         const deduplicated = this.deduplicate(allFindings);
@@ -110,8 +111,8 @@ class AuditSynthesizer {
             for (const f of findings) {
                 const location = f.line > 0 ? `${f.file}:${f.line}` : f.file;
                 // Escape pipe characters in cell content
-                const desc = f.description.replace(/\|/g, "\|");
-                const fix = f.fixSuggestion.replace(/\|/g, "\|");
+                const desc = f.description.replace(/\|/g, "|");
+                const fix = f.fixSuggestion.replace(/\|/g, "|");
                 md += `| ${f.severity} | ${location} | ${desc} | ${fix} |\n`;
             }
             md += "\n";

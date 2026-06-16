@@ -6,6 +6,7 @@
 //   - Documented the maxFiles constant
 //   - Added depth limit to prevent runaway recursion
 //   - Validate file readability before adding to results
+//   - Added path traversal protection and input sanitization
 var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
     if (k2 === undefined) k2 = k;
     var desc = Object.getOwnPropertyDescriptor(m, k);
@@ -41,8 +42,35 @@ var __importStar = (this && this.__importStar) || (function () {
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ProjectMapper = void 0;
+exports.sanitizePath = sanitizePath;
 const fs = __importStar(require("node:fs"));
 const path = __importStar(require("node:path"));
+const logger_1 = require("./logger");
+/**
+ * Sanitize and validate a file path to prevent path traversal attacks.
+ * @param inputPath The input path to sanitize
+ * @param baseDir The base directory to restrict access to (optional)
+ * @returns The resolved absolute path if valid, throws Error otherwise
+ */
+function sanitizePath(inputPath, baseDir) {
+    if (!inputPath || typeof inputPath !== "string") {
+        throw new Error("Invalid path: must be a non-empty string");
+    }
+    // Normalize the path (resolve . and ..)
+    const normalized = path.normalize(inputPath);
+    // Resolve to absolute path
+    const absolute = path.resolve(normalized);
+    // If baseDir is provided, ensure the path is within it
+    if (baseDir) {
+        const absoluteBase = path.resolve(baseDir);
+        // Check if the path is within baseDir
+        const relative = path.relative(absoluteBase, absolute);
+        if (relative.startsWith("..") || path.isAbsolute(relative)) {
+            throw new Error(`Path traversal attempt detected: ${inputPath}`);
+        }
+    }
+    return absolute;
+}
 /** Maximum number of files to include in a single audit. Prevents token explosion. */
 const MAX_FILES = 50;
 /** Maximum directory depth to traverse. Prevents runaway recursion. */
@@ -57,7 +85,8 @@ class ProjectMapper {
      * @param depth 'surface' for a limited scan, 'deep' for a full core scan.
      */
     async mapCoreLogic(depth) {
-        const absoluteRoot = path.resolve(this.rootPath);
+        // Sanitize and validate the root path
+        const absoluteRoot = sanitizePath(this.rootPath);
         if (!fs.existsSync(absoluteRoot)) {
             throw new Error(`Root path does not exist: ${absoluteRoot}`);
         }
@@ -80,7 +109,13 @@ class ProjectMapper {
     }
     mapSurface(root) {
         // Surface mode returns a very limited set of entry points
-        const entryPoints = ["extensions/index.ts", "src/index.ts", "index.ts", "main.ts", "app.ts"];
+        const entryPoints = [
+            "extensions/index.ts",
+            "src/index.ts",
+            "index.ts",
+            "main.ts",
+            "app.ts",
+        ];
         const found = [];
         for (const ep of entryPoints) {
             const fullPath = path.join(root, ep);
@@ -134,7 +169,7 @@ class ProjectMapper {
             catch (err) {
                 // ENOTDIR can happen if a file in a path is actually a file, not a dir
                 // EACCES for permission denied
-                console.warn(`[pi-audit-master] Cannot read ${dir}: ${err.message}`);
+                (0, logger_1.logWarn)(`Cannot read ${dir}: ${err.message}`);
                 return;
             }
             for (const entry of entries) {
@@ -199,7 +234,8 @@ class ProjectMapper {
                             walkAll(fullPath, currentDepth + 1);
                     }
                     else if (entry.isFile() || entry.isSymbolicLink()) {
-                        if (allowedExts.has(path.extname(entry.name)) && !excludeFiles.has(entry.name)) {
+                        if (allowedExts.has(path.extname(entry.name)) &&
+                            !excludeFiles.has(entry.name)) {
                             try {
                                 fs.accessSync(fullPath, fs.constants.R_OK);
                                 allFiles.push(fullPath);

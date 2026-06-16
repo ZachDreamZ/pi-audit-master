@@ -1,10 +1,11 @@
 import type { ExtensionAPI, ExtensionCommandContext } from "pi-coding-agent";
 import { AuditManager } from "./audit-manager";
+import { logInfo, logWarn } from "./logger";
 
 /**
  * pi-audit-master
  * Professional multi-agent auditing and repair engine.
- * 
+ *
  * v0.4.0 Features:
  * - Active audit via /audit command
  * - Passive mode: auto-audit on file changes
@@ -32,7 +33,7 @@ export default async function piAuditMaster(pi: ExtensionAPI) {
 		passiveAuditTimeout = setTimeout(async () => {
 			if (recentFiles.size === 0) return;
 
-			console.log(`[pi-audit-master] Passive audit triggered for ${recentFiles.size} files`);
+			logInfo(`Passive audit triggered for ${recentFiles.size} files`);
 
 			// Get unique directories from modified files
 			const dirs = new Set<string>();
@@ -53,10 +54,10 @@ export default async function piAuditMaster(pi: ExtensionAPI) {
 
 					// Notify user of critical findings
 					if (result.summary && result.summary.includes("Critical")) {
-						console.warn(`[pi-audit-master] ⚠️ Critical issues found in ${dir}`);
+						logWarn(`Critical issues found in ${dir}`);
 					}
 				} catch (err) {
-					console.warn(`[pi-audit-master] Passive audit failed: ${(err as Error).message}`);
+					logWarn(`Passive audit failed: ${(err as Error).message}`);
 				}
 			}
 
@@ -160,7 +161,11 @@ export default async function piAuditMaster(pi: ExtensionAPI) {
 			// Also track bash commands that modify files
 			if (toolName === "bash") {
 				const command = args?.command || "";
-				if (command.includes(" > ") || command.includes(" >> ") || command.includes("mv ")) {
+				if (
+					command.includes(" > ") ||
+					command.includes(" >> ") ||
+					command.includes("mv ")
+				) {
 					// Extract file path from command (simplified)
 					const pathMatch = command.match(/(?:>|>>|mv)\s+(\S+)/);
 					if (pathMatch) {
@@ -170,10 +175,10 @@ export default async function piAuditMaster(pi: ExtensionAPI) {
 			}
 		});
 
-		console.log("[pi-audit-master] Passive mode enabled. Files will be auto-audited after modifications.");
+		logInfo(
+			"Passive mode enabled. Files will be auto-audited after modifications.",
+		);
 	}
 
-	console.log(
-		"[pi-audit-master] Extension loaded. Use /audit to start a comprehensive audit.",
-	);
+	logInfo("Extension loaded. Use /audit to start a comprehensive audit.");
 }

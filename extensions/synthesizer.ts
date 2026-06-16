@@ -10,6 +10,7 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { generateId, parseFileLine, findingDedupKey } from "./util";
+import { logWarn, logError } from "./logger";
 
 export interface AuditFinding {
 	id: string;
@@ -30,13 +31,13 @@ export class AuditSynthesizer {
 		for (let i = 0; i < reports.length; i++) {
 			const report = reports[i];
 			if (!report || typeof report !== "string") {
-				console.warn(`[pi-audit-master] Skipping invalid report at index ${i}`);
+				logWarn(`Skipping invalid report at index ${i}`);
 				continue;
 			}
 			try {
 				allFindings.push(...this.parseReport(report));
 			} catch (err) {
-				console.error(`[pi-audit-master] Failed to parse report ${i}: ${(err as Error).message}`);
+				logError(`Failed to parse report ${i}: ${(err as Error).message}`);
 			}
 		}
 
@@ -50,7 +51,8 @@ export class AuditSynthesizer {
 		const lines = report.split("\n");
 
 		// Match markdown table rows: | Severity | File:Line | Description | Fix |
-		const findingRegex = /^\|\s*(CRITICAL|HIGH|MEDIUM|LOW)\s*\|\s*([^|]+?)\s*\|\s*([^|]+?)\s*\|\s*([^|]+?)\s*\|\s*$/i;
+		const findingRegex =
+			/^\|\s*(CRITICAL|HIGH|MEDIUM|LOW)\s*\|\s*([^|]+?)\s*\|\s*([^|]+?)\s*\|\s*([^|]+?)\s*\|\s*$/i;
 
 		for (const line of lines) {
 			const match = line.match(findingRegex);
@@ -128,8 +130,8 @@ export class AuditSynthesizer {
 			for (const f of findings) {
 				const location = f.line > 0 ? `${f.file}:${f.line}` : f.file;
 				// Escape pipe characters in cell content
-				const desc = f.description.replace(/\|/g, "\|");
-				const fix = f.fixSuggestion.replace(/\|/g, "\|");
+				const desc = f.description.replace(/\|/g, "|");
+				const fix = f.fixSuggestion.replace(/\|/g, "|");
 				md += `| ${f.severity} | ${location} | ${desc} | ${fix} |\n`;
 			}
 			md += "\n";

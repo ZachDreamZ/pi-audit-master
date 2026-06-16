@@ -11,5 +11,6 @@ export declare class FixFleet {
     constructor(pi: ExtensionAPI);
     execute(report: string, ctx: any): Promise<FixResult[]>;
     private parseCriticalIssues;
+    private isMagicNumber;
     private dispatchFixWorker;
 }

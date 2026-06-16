@@ -5,11 +5,17 @@ export interface AuditOptions {
     format?: "chat" | "file" | "hybrid";
     fix?: boolean;
     ctx: ExtensionCommandContext;
+    /** Optional timeout in milliseconds for the entire audit operation */
+    timeoutMs?: number;
+    /** Optional progress callback */
+    onProgress?: (stage: string, progress: number, total: number) => void;
 }
 export interface AuditConfig {
     depth: "surface" | "deep";
     format: "chat" | "file" | "hybrid";
     fix: boolean;
+    timeoutMs: number;
+    onProgress?: (stage: string, progress: number, total: number) => void;
 }
 export declare class AuditManager {
     private pi;

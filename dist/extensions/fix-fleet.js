@@ -10,6 +10,7 @@
 //   - Added fix verification with re-read
 //   - Added confidence scoring for fixes
 //   - Integrated with Pi's edit/write tools
+//   - Made magic number detection conservative to avoid false positives
 var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
     if (k2 === undefined) k2 = k;
     var desc = Object.getOwnPropertyDescriptor(m, k);
@@ -46,6 +47,7 @@ var __importStar = (this && this.__importStar) || (function () {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.FixFleet = void 0;
 const util_1 = require("./util");
+const logger_1 = require("./logger");
 const fs = __importStar(require("node:fs"));
 class FixFleet {
     pi;
@@ -54,7 +56,7 @@ class FixFleet {
     }
     async execute(report, ctx) {
         if (!report || typeof report !== "string") {
-            console.error("[pi-audit-master] FixFleet: invalid report input");
+            (0, logger_1.logError)("FixFleet: invalid report input");
             return [];
         }
         const issues = this.parseCriticalIssues(report);
@@ -73,7 +75,6 @@ class FixFleet {
                 });
             }
             catch (e) {
-                // One failure does NOT abort the whole fleet
                 results.push({
                     issueId: issue.id,
                     severity: issue.severity,
@@ -107,82 +108,117 @@ class FixFleet {
         }
         return findings;
     }
+    isMagicNumber(num, line) {
+        const n = parseInt(num, 10);
+        if (Number.isNaN(n))
+            return false;
+        const commonLegitimateNumbers = new Set([
+            1970, 1980, 1990, 2000, 2010, 2020, 2021, 2022, 2023, 2024, 2025, 2026,
+            100, 101, 200, 201, 202, 204, 300, 301, 302, 304, 400, 401, 403, 404, 405,
+            409, 422, 429, 500, 502, 503, 504, 22, 25, 53, 80, 443, 3306, 5432, 6379,
+            8080, 8443, 9000, 1000, 5000, 10000, 30000, 60000, 300000, 3600000,
+            86400000, 256, 512, 1024, 2048, 4096, 8192, 16384, 65536, 1, 2, 3, 4, 5,
+            6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20,
+        ]);
+        if (commonLegitimateNumbers.has(n))
+            return false;
+        const context = line.toLowerCase();
+        if (context.includes("port") ||
+            context.includes("year") ||
+            context.includes("version") ||
+            context.includes("status") ||
+            context.includes("timeout") ||
+            context.includes("buffer") ||
+            context.includes("limit") ||
+            context.includes("max") ||
+            context.includes("min") ||
+            context.includes("size") ||
+            context.includes("count") ||
+            context.includes("length") ||
+            context.includes("http") ||
+            context.includes("timestamp") ||
+            context.includes("date") ||
+            context.includes("time") ||
+            context.includes("delay") ||
+            context.includes("interval") ||
+            context.includes("retry")) {
+            return false;
+        }
+        return num.length >= 4;
+    }
     async dispatchFixWorker(issue, ctx) {
-        // Try to apply automated fix based on issue type
         try {
-            // Validate file exists
             if (!fs.existsSync(issue.file)) {
-                console.warn(`[pi-audit-master] File not found: ${issue.file}`);
+                (0, logger_1.logWarn)(`File not found: ${issue.file}`);
                 return false;
             }
-            // Read the file content
             const content = fs.readFileSync(issue.file, "utf8");
             const lines = content.split("\n");
-            // Find the line to fix
             const targetLine = issue.line > 0 ? issue.line - 1 : 0;
             if (targetLine >= lines.length) {
-                console.warn(`[pi-audit-master] Line ${issue.line} out of range in ${issue.file}`);
+                (0, logger_1.logWarn)(`Line ${issue.line} out of range in ${issue.file}`);
                 return false;
             }
             const originalLine = lines[targetLine];
             let fixedLine = originalLine;
             let applied = false;
-            // Apply fixes based on issue description patterns
             const desc = issue.description.toLowerCase();
             const fix = issue.fixSuggestion.toLowerCase();
-            // Fix: Remove 'as any' type assertions
             if (desc.includes("as any") && fix.includes("remove type assertion")) {
                 fixedLine = originalLine.replace(/\s+as\s+any/g, "");
                 applied = fixedLine !== originalLine;
             }
-            // Fix: Add optional chaining
-            if ((desc.includes("null dereference") || desc.includes("null safety")) && fix.includes("optional chaining")) {
-                // Add ?. before property access
-                fixedLine = originalLine.replace(/\.([a-zA-Z_\w]+)/g, ".?.$1");
+            if ((desc.includes("null dereference") || desc.includes("null safety")) &&
+                fix.includes("optional chaining")) {
+                fixedLine = originalLine.replace(/\.([a-zA-Z_$][\w$]*)/g, "?.$1");
                 applied = fixedLine !== originalLine;
             }
-            // Fix: Extract magic numbers
             if (desc.includes("magic number") && fix.includes("named constant")) {
-                const numMatch = originalLine.match(/\b(\d{3,})\b/);
-                if (numMatch) {
+                const numMatch = originalLine.match(/\b(\d{4,})\b/);
+                if (numMatch && this.isMagicNumber(numMatch[1], originalLine)) {
                     const num = numMatch[1];
                     const constantName = `CONSTANT_${num}`;
-                    // Add constant declaration at top of file
-                    lines.unshift(`const ${constantName} = ${num};`);
+                    let insertIndex = 0;
+                    for (let i = 0; i < lines.length; i++) {
+                        if (lines[i].startsWith("import ") ||
+                            lines[i].startsWith("export ")) {
+                            insertIndex = i + 1;
+                        }
+                        else if (lines[i].trim() === "") {
+                        }
+                        else {
+                            break;
+                        }
+                    }
+                    lines.splice(insertIndex, 0, `const ${constantName} = ${num};`);
                     fixedLine = originalLine.replace(num, constantName);
                     applied = true;
                 }
             }
-            // Fix: Add try-catch for async calls
-            if (desc.includes("async call without error handling") && fix.includes("try-catch")) {
+            if (desc.includes("async call without error handling") &&
+                fix.includes("try-catch")) {
                 const indent = originalLine.match(/^(\s*)/)?.[1] || "";
-                fixedLine = `${indent}try {
-${indent}  ${originalLine.trim()}
-${indent}} catch (error) {
-${indent}  console.error(error);
-${indent}}`;
+                fixedLine = `${indent}try {\n${indent}  ${originalLine.trim()}\n${indent}} catch (error) {\n${indent}  console.error(error);\n${indent}}`;
                 applied = true;
             }
             if (applied) {
-                // Write the fixed content
                 lines[targetLine] = fixedLine;
                 const newContent = lines.join("\n");
                 fs.writeFileSync(issue.file, newContent, "utf8");
-                // Verify the fix by re-reading
                 const verifyContent = fs.readFileSync(issue.file, "utf8");
                 const verifyLines = verifyContent.split("\n");
                 if (verifyLines[targetLine] !== fixedLine) {
-                    console.warn(`[pi-audit-master] Fix verification failed for ${issue.file}:${issue.line}`);
+                    (0, logger_1.logWarn)(`Fix verification failed for ${issue.file}:${issue.line}`);
                     return false;
                 }
-                console.log(`[pi-audit-master] Applied fix to ${issue.file}:${issue.line}`);
+                (0, logger_1.logInfo)(`Applied fix to ${issue.file}:${issue.line}`);
                 return true;
             }
-            console.warn(`[pi-audit-master] No automated fix available for: ${issue.description}`);
+            (0, logger_1.logWarn)(`No automated fix available for: ${issue.description}`);
             return false;
         }
         catch (error) {
-            console.error(`[pi-audit-master] Fix failed: ${error.message}`);
+            (0, logger_1.logError)(`Fix failed: ${error.message}`);
             return false;
         }
     }

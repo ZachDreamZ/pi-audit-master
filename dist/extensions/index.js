@@ -2,6 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.default = piAuditMaster;
 const audit_manager_1 = require("./audit-manager");
+const logger_1 = require("./logger");
 /**
  * pi-audit-master
  * Professional multi-agent auditing and repair engine.
@@ -29,7 +30,7 @@ async function piAuditMaster(pi) {
         passiveAuditTimeout = setTimeout(async () => {
             if (recentFiles.size === 0)
                 return;
-            console.log(`[pi-audit-master] Passive audit triggered for ${recentFiles.size} files`);
+            (0, logger_1.logInfo)(`Passive audit triggered for ${recentFiles.size} files`);
             // Get unique directories from modified files
             const dirs = new Set();
             for (const file of recentFiles) {
@@ -47,11 +48,11 @@ async function piAuditMaster(pi) {
                     });
                     // Notify user of critical findings
                     if (result.summary && result.summary.includes("Critical")) {
-                        console.warn(`[pi-audit-master] ⚠️ Critical issues found in ${dir}`);
+                        (0, logger_1.logWarn)(`Critical issues found in ${dir}`);
                     }
                 }
                 catch (err) {
-                    console.warn(`[pi-audit-master] Passive audit failed: ${err.message}`);
+                    (0, logger_1.logWarn)(`Passive audit failed: ${err.message}`);
                 }
             }
             recentFiles.clear();
@@ -144,7 +145,9 @@ async function piAuditMaster(pi) {
             // Also track bash commands that modify files
             if (toolName === "bash") {
                 const command = args?.command || "";
-                if (command.includes(" > ") || command.includes(" >> ") || command.includes("mv ")) {
+                if (command.includes(" > ") ||
+                    command.includes(" >> ") ||
+                    command.includes("mv ")) {
                     // Extract file path from command (simplified)
                     const pathMatch = command.match(/(?:>|>>|mv)\s+(\S+)/);
                     if (pathMatch) {
@@ -153,7 +156,7 @@ async function piAuditMaster(pi) {
                 }
             }
         });
-        console.log("[pi-audit-master] Passive mode enabled. Files will be auto-audited after modifications.");
+        (0, logger_1.logInfo)("Passive mode enabled. Files will be auto-audited after modifications.");
     }
-    console.log("[pi-audit-master] Extension loaded. Use /audit to start a comprehensive audit.");
+    (0, logger_1.logInfo)("Extension loaded. Use /audit to start a comprehensive audit.");
 }
